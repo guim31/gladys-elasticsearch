@@ -1,0 +1,103 @@
+{
+  "info": {
+    "name": "es-plain-1",
+    "cluster_name": "lab",
+    "cluster_uuid": "h5l1nSFKTk2JT3nypNK6GQ",
+    "version": {
+      "number": "8.19.7",
+      "build_flavor": "default",
+      "build_type": "docker",
+      "build_hash": "198d86868932741b4e0d184425510217febc27d1",
+      "build_date": "2025-11-07T13:35:54.762042224Z",
+      "build_snapshot": false,
+      "lucene_version": "9.12.2",
+      "minimum_wire_compatibility_version": "7.17.0",
+      "minimum_index_compatibility_version": "7.0.0"
+    },
+    "tagline": "You Know, for Search"
+  },
+  "health": {
+    "cluster_name": "lab",
+    "status": "red",
+    "timed_out": false,
+    "number_of_nodes": 1,
+    "number_of_data_nodes": 1,
+    "active_primary_shards": 1,
+    "active_shards": 1,
+    "relocating_shards": 0,
+    "initializing_shards": 0,
+    "unassigned_shards": 1,
+    "unassigned_primary_shards": 1,
+    "delayed_unassigned_shards": 0,
+    "number_of_pending_tasks": 0,
+    "number_of_in_flight_fetch": 0,
+    "task_max_waiting_in_queue_millis": 0,
+    "active_shards_percent_as_number": 50
+  },
+  "stats": {
+    "cluster_uuid": "h5l1nSFKTk2JT3nypNK6GQ",
+    "indices": {
+      "count": 1,
+      "docs": {
+        "count": 3
+      },
+      "store": {
+        "size_in_bytes": 9908
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "vfb2zX8_S2yIcglcifq--g",
+      "name": "es-plain-1",
+      "ip": "192.0.2.12",
+      "node.role": "cdfhilmrstw",
+      "master": "*",
+      "version": "8.19.7",
+      "heap.percent": "48",
+      "ram.percent": "82",
+      "cpu": "38",
+      "load_1m": "2.72",
+      "disk.used_percent": "96.83",
+      "disk.avail": "15904727040",
+      "disk.total": "502392610816"
+    }
+  ],
+  "allocation": [
+    {
+      "shards": "1",
+      "shards.undesired": "0",
+      "write_load.forecast": "0.0",
+      "disk.indices.forecast": "0",
+      "disk.indices": "9908",
+      "disk.used": "486487883776",
+      "disk.avail": "15904727040",
+      "disk.total": "502392610816",
+      "disk.percent": "96",
+      "host": "192.0.2.12",
+      "ip": "192.0.2.12",
+      "node": "es-plain-1",
+      "node.role": "cdfhilmrstw"
+    },
+    {
+      "shards": "1",
+      "shards.undesired": null,
+      "write_load.forecast": null,
+      "disk.indices.forecast": null,
+      "disk.indices": null,
+      "disk.used": null,
+      "disk.avail": null,
+      "disk.total": null,
+      "disk.percent": null,
+      "host": null,
+      "ip": null,
+      "node": "UNASSIGNED",
+      "node.role": null
+    }
+  ],
+  "redIndices": [
+    {
+      "index": "broken"
+    }
+  ]
+}

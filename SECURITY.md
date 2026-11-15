@@ -30,6 +30,24 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+What the integration handles:
+
+- **Secrets**: the API key or the password of the cluster, kept by Gladys in
+  the configuration of the integration. They are sent only to the configured
+  cluster, in the `Authorization` header, and never written to the logs nor to
+  `/data`. Over HTTPS, the certificate is checked (or matched against the
+  confirmed fingerprint) before any request, and so before any credential,
+  leaves the container.
+- **`/data`**: one file, `elasticsearch-state.json`: the last health status
+  of the cluster and the disk steps already announced per node. No credential,
+  no document of the cluster.
+- **Network**: GET requests to the monitoring APIs of the configured cluster
+  only, on the local network. Read only: the integration never writes to the
+  cluster, and a key limited to the `monitor` privilege is enough.
+- **"Accept any certificate"** disables the certificate check: anyone on the
+  network could then pose as the cluster and receive the credentials. The
+  documentation recommends the fingerprint instead.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and Elasticsearch or OpenSearch themselves.
