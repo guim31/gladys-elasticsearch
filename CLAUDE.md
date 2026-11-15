@@ -276,6 +276,10 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
   ne passer ni `agent` ni `agent: false` quand on fournit la socket.
 - **Sans schéma saisi** : HTTPS d'abord (Elasticsearch 8 par défaut), HTTP si le serveur répond en clair
   (`EPROTO` / « wrong version number ») ; un certificat refusé fixe HTTPS (l'empreinte est à confirmer).
+  Jamais de repli HTTP sur une coupure ou un délai dépassé (les identifiants partiraient en clair), ni avec une
+  empreinte épinglée ou « accepter tout certificat ».
+- **Déclencheurs** : l'état du `Watcher` n'est validé qu'une fois l'événement accepté par Gladys (sinon annoncé à
+  la lecture suivante) ; « injoignable » seulement pour un cluster déjà joint avec cette configuration.
 - **Tests réels** : sur une machine dont le disque dépasse 90 %, un cluster de test reste rouge ou refuse
   l'authentification (index `.security` non alloué) : lancer les conteneurs avec
   `cluster.routing.allocation.disk.threshold_enabled=false`.

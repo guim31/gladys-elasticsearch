@@ -728,7 +728,7 @@
       "description": {
         "en": "Status, nodes, unassigned shards, documents and size of the cluster, disk and heap of each node.",
         "fr": "État, nœuds, shards non assignés, documents et taille du cluster, disque et tas de chaque nœud.",
-        "de": "Status, Knoten, freie Shards, Dokumente und Größe des Clusters, Platte und Heap jedes Knotens.",
+        "de": "Status, Knoten, nicht zugewiesene Shards, Dokumente, Größe; Platte und Heap jedes Knotens.",
         "es": "Estado, nodos, shards sin asignar, documentos y tamaño del clúster, disco y montón de cada nodo."
       },
       "settings": [

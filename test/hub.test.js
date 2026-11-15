@@ -416,3 +416,46 @@ test('a cluster down for several reads: one line, then one when it answers again
   assert.ok(!lines.join('').includes('192.0.2.10:9200@'), 'no credentials');
   await world.app.stop();
 });
+
+test('the own timer retries a failed read sooner, then says unreachable', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const cluster = new FakeCluster();
+  const world = await createWorld({ cluster, timers: true });
+  cluster.down = true;
+  t.mock.timers.tick(60_000); // regular read: first failure
+  await world.hub.reading;
+  await new Promise((resolve) => setImmediate(resolve)); // the timer rescheduled
+  assert.equal(world.gladys.fake.sceneEvents.length, 0);
+  t.mock.timers.tick(20_000); // the retry, not another minute
+  await world.hub.reading;
+  await new Promise((resolve) => setImmediate(resolve)); // the timer rescheduled
+  assert.deepEqual(
+    world.gladys.fake.sceneEvents.map((e) => e.key),
+    [TRIGGERS.UNREACHABLE],
+  );
+  await world.app.stop();
+});
+
+test('a scene event refused by Gladys is announced again at the next read', async (t) => {
+  const cluster = new FakeCluster();
+  const world = await createWorld({ cluster });
+  const { gladys, hub } = world;
+  const original = gladys.publishSceneEvent.bind(gladys);
+  let refuse = true;
+  t.mock.method(gladys, 'publishSceneEvent', async (...args) => {
+    if (refuse) {
+      throw new Error('429');
+    }
+    return original(...args);
+  });
+  cluster.setStatus('red');
+  await hub.poll();
+  assert.equal(gladys.fake.sceneEvents.length, 0);
+  refuse = false;
+  await hub.poll();
+  assert.deepEqual(
+    gladys.fake.sceneEvents.map((e) => [e.key, e.data.status]),
+    [[TRIGGERS.STATUS, 'red']],
+  );
+  await world.app.stop();
+});

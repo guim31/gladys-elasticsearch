@@ -77,6 +77,17 @@ export class Watcher {
     return crossed;
   }
 
+  /** The status event was refused: back to the previous status, announced again. */
+  undoStatus(uuid, previous) {
+    this.saved.status[uuid] = previous;
+  }
+
+  /** The disk event was refused: the step is not taken, announced again. */
+  undoDisk(uuid, nodeId, step) {
+    const id = `${uuid}-${nodeId}`;
+    this.saved.disks[id] = numbers(this.saved.disks[id]).filter((value) => value !== step);
+  }
+
   toJSON() {
     return this.saved;
   }

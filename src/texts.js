@@ -100,6 +100,8 @@ export const STATUS_TEXT = {
   green: { en: 'Green', fr: 'Vert', de: 'Grün', es: 'Verde' },
   yellow: { en: 'Yellow', fr: 'Jaune', de: 'Gelb', es: 'Amarillo' },
   red: { en: 'Red', fr: 'Rouge', de: 'Rot', es: 'Rojo' },
+  // A status the cluster did not give: never shown as red.
+  unknown: { en: 'Unknown', fr: 'Inconnu', de: 'Unbekannt', es: 'Desconocido' },
 };
 
 /** Thousands separators of the language. */
@@ -174,7 +176,7 @@ export function summarize(view, language) {
     return text.unreachable(view.name, reason);
   }
   const parts = [
-    text.cluster(view.name, pick(STATUS_TEXT[snapshot.status] ?? STATUS_TEXT.red, language)),
+    text.cluster(view.name, pick(STATUS_TEXT[snapshot.status] ?? STATUS_TEXT.unknown, language)),
   ];
   if (snapshot.nodeCount !== null) {
     parts.push(text.nodes(snapshot.nodeCount));
@@ -249,7 +251,7 @@ export function testReport({ snapshot, error, fingerprint }) {
     const text = REPORT_TEXT[language];
     const lines = [];
     if (snapshot) {
-      const status = pick(STATUS_TEXT[snapshot.status] ?? STATUS_TEXT.red, language);
+      const status = pick(STATUS_TEXT[snapshot.status] ?? STATUS_TEXT.unknown, language);
       const nodes = SUMMARY[language].nodes(snapshot.nodeCount ?? 0);
       lines.push(
         text.found(`${snapshot.product} ${snapshot.version}`, snapshot.clusterName, status, nodes),

@@ -145,3 +145,27 @@ test('never a credential in an error message', async () => {
   const down = await failure(client(cluster, { api_key: 'k3y' }).read());
   assert.ok(!down.message.includes('k3y'));
 });
+
+test('no fallback to plain HTTP on a reset, nor with a pinned certificate', async () => {
+  const flaky = new FakeCluster({ scheme: 'https', trusted: true });
+  const request = flaky.request;
+  const seen = [];
+  const reset = async (url, options) => {
+    seen.push(url);
+    if (url.startsWith('https:')) {
+      throw Object.assign(new Error('ECONNRESET'), { code: 'ECONNRESET' });
+    }
+    return request(url, options);
+  };
+  const c = new EsClient(normalizeConfig({ url: 'es.lan', api_key: 'k' }), { request: reset });
+  assert.equal((await failure(c.read())).kind, ERROR_KINDS.UNREACHABLE);
+  assert.ok(
+    seen.every((url) => url.startsWith('https:')),
+    seen.join(' '),
+  );
+
+  const plain = new FakeCluster();
+  const pinned = client(plain, { tls_fingerprint: 'ab'.repeat(32) });
+  await failure(pinned.read());
+  assert.ok(plain.requests.every((r) => r.url.startsWith('https:')));
+});

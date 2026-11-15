@@ -146,10 +146,13 @@ export class EsClient {
 
   /** One GET, the scheme found on the first call when the user typed none. */
   async raw(path) {
+    // A pinned or waived certificate means HTTPS: never a fallback to HTTP.
+    if (!this.scheme && (this.tls.fingerprint || this.tls.insecure)) {
+      this.scheme = 'https';
+    }
     if (this.scheme) {
       return this.send(this.scheme, path);
     }
-    let first;
     try {
       const response = await this.send('https', path);
       this.scheme = 'https';
@@ -160,15 +163,15 @@ export class EsClient {
         this.scheme = 'https';
         throw err;
       }
-      first = err;
+      // Plain HTTP only when the server answered the handshake in plain
+      // HTTP: a reset or a timeout must not send the credentials in clear.
+      if (!isNotTls(err)) {
+        throw err;
+      }
     }
-    try {
-      const response = await this.send('http', path);
-      this.scheme = 'http';
-      return response;
-    } catch (err) {
-      throw isNotTls(first) ? err : first;
-    }
+    const response = await this.send('http', path);
+    this.scheme = 'http';
+    return response;
   }
 
   /**

@@ -15,6 +15,7 @@
 // -----------------------------------------------------------------------------
 
 import { WIDGET_COLORS } from '@gladysassistant/integration-sdk';
+import { DEVICE_TYPES, deviceIds, nodePlatformId } from './devices.js';
 import { WIDGET_KEY } from './hub.js';
 import { ERROR_TEXT, STATUS_TEXT, formatNumber, formatSize, pick, summarize } from './texts.js';
 
@@ -41,7 +42,7 @@ export const TEXT = {
   unassigned: {
     en: 'Unassigned shards',
     fr: 'Shards non assignés',
-    de: 'Freie Shards',
+    de: 'Nicht zugewiesene Shards',
     es: 'Shards sin asignar',
   },
   documents: { en: 'Documents', fr: 'Documents', de: 'Dokumente', es: 'Documentos' },
@@ -81,8 +82,16 @@ const refreshButton = (language) => ({
   action: { key: ACTIONS.REFRESH },
 });
 
-/** The rows of the status list: red indices, then the nodes, fullest disk first. */
-function rows(snapshot, language) {
+/**
+ * The rows of the status list: red indices, then the nodes, fullest disk
+ * first, under the name given in Gladys to an added node device.
+ */
+function rows(hub, snapshot, language) {
+  const named = new Map((hub.gladys.devices ?? []).map((d) => [d.external_id, d.name]));
+  const nameOf = (node) =>
+    named.get(
+      deviceIds(hub.gladys, DEVICE_TYPES.NODE, nodePlatformId(snapshot.uuid, node.id)).device,
+    ) || node.name;
   const items = (snapshot.redIndices ?? []).map((index) => ({
     label: fit(index, 40),
     value: t(TEXT.redIndex, language),
@@ -99,7 +108,7 @@ function rows(snapshot, language) {
       parts.push(`${t(TEXT.heap, language)} ${formatNumber(node.heap, language)} %`);
     }
     items.push({
-      label: fit(node.master ? `${node.name} ★` : node.name, 40),
+      label: fit(node.master ? `${nameOf(node)} ★` : nameOf(node), 40),
       value: fit(parts.join(' · ') || '–', 40),
       icon: 'server',
       color: node.disk === null ? WIDGET_COLORS.NEUTRAL : diskColor(node.disk),
@@ -142,10 +151,10 @@ async function get(hub, { settings = {}, language = 'en' } = {}) {
     { type: 'text', variant: 'heading', text: fit(view.name, 40) },
     {
       type: 'value',
-      value: t(STATUS_TEXT[snapshot.status] ?? STATUS_TEXT.red, language),
+      value: t(STATUS_TEXT[snapshot.status] ?? STATUS_TEXT.unknown, language),
       label: t(TEXT.status, language),
       icon: 'activity',
-      color: STATUS_COLORS[snapshot.status] ?? WIDGET_COLORS.DANGER,
+      color: STATUS_COLORS[snapshot.status] ?? WIDGET_COLORS.NEUTRAL,
     },
   ];
   if (snapshot.nodeCount !== null) {
@@ -184,7 +193,7 @@ async function get(hub, { settings = {}, language = 'en' } = {}) {
       color: WIDGET_COLORS.NEUTRAL,
     });
   }
-  const list = shown(settings, 'show_nodes') ? rows(snapshot, language) : [];
+  const list = shown(settings, 'show_nodes') ? rows(hub, snapshot, language) : [];
   if (list.length > 0) {
     components.push({ type: 'status', items: list });
   }
@@ -199,7 +208,7 @@ async function action(hub, { actionKey }) {
   const view = hub.view();
   return {
     message: view.snapshot
-      ? STATUS_TEXT[view.snapshot.status]
+      ? (STATUS_TEXT[view.snapshot.status] ?? STATUS_TEXT.unknown)
       : (ERROR_TEXT[view.error?.kind] ?? TEXT.waiting),
   };
 }

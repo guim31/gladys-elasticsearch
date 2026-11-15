@@ -105,7 +105,12 @@ export class ElasticsearchHub {
       await this.publishConnectionStatus();
       return;
     }
-    await this.poll();
+    try {
+      await this.poll();
+    } catch (err) {
+      // An unexpected error (a bug): logged, and the timer still runs.
+      this.issues.fail('loop', `Reading loop failed: ${err.message}`, 'error');
+    }
     this.schedule();
   }
 
@@ -124,6 +129,10 @@ export class ElasticsearchHub {
     this.connection = null;
     this.transports.clear();
     this.discovered = null;
+    if (!this.client) {
+      await this.publishConnectionStatus();
+      return;
+    }
     await this.poll();
   }
 
@@ -134,8 +143,16 @@ export class ElasticsearchHub {
     await this.store.flush();
   }
 
-  schedule(delay = this.config.pollIntervalMs) {
+  /**
+   * The next timer read: after the poll interval, or sooner after a first
+   * failure, to confirm or clear it before the next regular read.
+   */
+  schedule() {
     clearTimeout(this.timer);
+    const delay =
+      this.failures > 0 && !this.down
+        ? Math.min(this.timings.retryMs, this.config.pollIntervalMs)
+        : this.config.pollIntervalMs;
     if (!this.timersEnabled || this.stopped || !this.client) {
       return;
     }
@@ -155,9 +172,15 @@ export class ElasticsearchHub {
       return Promise.resolve();
     }
     // A read in progress is shared (timer, widget, scene action at once).
-    this.reading ??= this.readAndPublish().finally(() => {
-      this.reading = null;
-    });
+    if (!this.reading) {
+      const reading = this.readAndPublish().finally(() => {
+        // Only this read: a reconfiguration may have started another one.
+        if (this.reading === reading) {
+          this.reading = null;
+        }
+      });
+      this.reading = reading;
+    }
     return this.reading;
   }
 
@@ -224,10 +247,6 @@ export class ElasticsearchHub {
     } else {
       logger.debug(`Cluster read failed again: ${error.message}`);
     }
-    if (this.failures === 1) {
-      // Confirm or clear the failure before the next regular read.
-      this.schedule(Math.min(this.timings.retryMs, this.config.pollIntervalMs));
-    }
     if (!this.down && this.failures >= this.timings.downAfterFailures) {
       this.down = true;
       this.gladys.requestWidgetRefresh(WIDGET_KEY);
@@ -276,16 +295,20 @@ export class ElasticsearchHub {
   async fireEvents(snapshot) {
     const change = this.watcher.status(snapshot.uuid, snapshot.status);
     if (change) {
-      await this.fireEvent(TRIGGERS.STATUS, {
+      const sent = await this.fireEvent(TRIGGERS.STATUS, {
         status: change.status,
         cluster_name: this.clusterName(),
         previous_status: change.previous,
         unassigned_shards: snapshot.unassignedShards,
         red_indices: shortList(snapshot.redIndices ?? [], 20),
       });
+      if (!sent) {
+        // Refused (Gladys restarting, 429): announced at the next read.
+        this.watcher.undoStatus(snapshot.uuid, change.previous);
+      }
     }
     for (const { node, threshold } of this.watcher.disks(snapshot.uuid, snapshot.nodes ?? [])) {
-      await this.fireEvent(TRIGGERS.DISK, {
+      const sent = await this.fireEvent(TRIGGERS.DISK, {
         node: deviceIds(this.gladys, DEVICE_TYPES.NODE, nodePlatformId(snapshot.uuid, node.id))
           .device,
         threshold,
@@ -294,16 +317,22 @@ export class ElasticsearchHub {
         used_percent: node.disk,
         free_gb: node.diskFree === null ? null : Math.round(node.diskFree / 1e8) / 10,
       });
+      if (!sent) {
+        this.watcher.undoDisk(snapshot.uuid, node.id, threshold);
+      }
     }
   }
 
+  /** @returns {Promise<boolean>} whether Gladys accepted the event */
   async fireEvent(key, data) {
     logger.debug(`Scene trigger ${key}`);
     try {
       await this.gladys.publishSceneEvent(key, data);
       this.issues.recover('scene', 'Scene events accepted again');
+      return true;
     } catch (err) {
       this.issues.fail('scene', `Scene event ${key} refused: ${err.message}`);
+      return false;
     }
   }
 

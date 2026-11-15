@@ -46,6 +46,11 @@ test('the widget shows status, figures and the nodes, in every language', async 
     assert.match(rows[1].label, /^es-3/, 'then the fullest disk');
     assert.match(rows[3].label, /^es-1 ★/, 'the elected master is starred');
   }
+  // An added node shows under the name given in Gladys.
+  const node = world.gladys.fake.discoveredDevices.find((d) => d.name === 'es-3');
+  await world.gladys.fake.deviceCreated({ ...node, name: 'Rack node' });
+  const rows = (await widget(world)).components[6].items;
+  assert.equal(rows[1].label, 'Rack node');
   await world.app.stop();
 });
 
