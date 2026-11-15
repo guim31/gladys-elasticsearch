@@ -1,67 +1,124 @@
-# Template de démonstration
+# Elasticsearch / OpenSearch
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+La santé de votre cluster Elasticsearch ou OpenSearch dans Gladys : état,
+nœuds, shards, disques, déclencheurs de scène et un widget. Lecture seule :
+l'intégration n'écrit jamais dans le cluster.
+
+Testée contre de vrais clusters Elasticsearch 8.19 et OpenSearch 2.19 (sous
+Docker, avec et sans sécurité). Vos retours sont les bienvenus sur
+[GitHub](https://github.com/guim31/gladys-elasticsearch/issues).
 
 ## Ce que vous obtenez
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+Dans l'onglet **Découverte**, un appareil pour le cluster et un par nœud.
+
+L'appareil du cluster :
+
+- **État (0 vert, 1 jaune, 2 rouge)** : l'état de santé du cluster. Jaune :
+  une réplique n'est pas allouée (normal sur un nœud unique avec répliques).
+  Rouge : un shard primaire manque, des données ne sont plus consultables.
+- **Nœuds**, **Nœuds de données**, **Shards actifs**, **Shards non assignés**.
+- **Index**, **Documents**, **Taille des index** (Go).
+- **Version** : le produit et sa version, ex. `OpenSearch 2.19.3`.
+
+Chaque appareil de nœud :
+
+- **Disque utilisé**, **Tas JVM utilisé**, **Processeur** (%), **Charge (1 min)**.
+- **Shards** : les shards qu'il porte.
+- **Dans le cluster** : 1 tant que le nœud fait partie du cluster, 0 une fois
+  qu'il l'a quitté (son badge indique alors injoignable).
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+1. Si la sécurité est activée (le cas par défaut d'Elasticsearch 8), créez
+   pour Gladys une clé d'API limitée à la supervision, par exemple dans
+   Kibana → Dev Tools :
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+   ```
+   POST /_security/api_key
+   {"name": "gladys", "role_descriptors": {"gladys": {
+     "cluster": ["monitor"],
+     "indices": [{"names": ["*"], "privileges": ["monitor"]}]}}}
+   ```
+
+   Copiez la valeur `encoded` dans **Clé d'API (Elasticsearch)**. Avec
+   OpenSearch, ou sans clé d'API, créez un utilisateur avec la permission
+   `cluster_monitor` (et `indices_monitor` pour nommer les index rouges), et
+   remplissez **Utilisateur** et **Mot de passe**. Jamais le compte `elastic`
+   ou `admin`.
+
+2. **Adresse** : n'importe quel nœud, ex. `192.168.1.20` (port 9200, HTTPS
+   essayé d'abord, puis HTTP) ou `https://es.lan:9200`.
+3. HTTPS avec un certificat auto-signé (le cas par défaut d'Elasticsearch 8
+   et d'OpenSearch) : cliquez sur **Tester la connexion**. Le bouton affiche
+   l'empreinte SHA-256 du certificat. Vérifiez que c'est celle de votre
+   cluster : sur le serveur,
+   `openssl s_client -connect localhost:9200 </dev/null | openssl x509 -noout -fingerprint -sha256`
+   l'affiche. Copiez-la ensuite dans **Empreinte du certificat** et
+   enregistrez. Seul ce certificat est alors accepté. **Accepter tout
+   certificat** saute toute vérification : à éviter.
+4. Ajoutez le cluster et les nœuds voulus depuis l'onglet **Découverte**.
+
+L'**Intervalle de rafraîchissement** (1 minute par défaut) règle la
+fréquence de lecture du cluster : cinq requêtes légères de supervision à
+chaque fois (six quand il est rouge). La **Langue des noms** règle les noms
+des fonctionnalités, figés à l'ajout d'un appareil, et les textes envoyés aux
+scènes.
 
 ## Actions
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+- **Tester la connexion** : lit le cluster maintenant et dit ce qu'il a
+  trouvé (produit, état, nœuds), avec l'empreinte d'un certificat HTTPS.
 
 ## Scènes
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+Déclencheurs, qui fonctionnent sans ajouter d'appareil :
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+- **L'état du cluster change** : l'état passe au vert, au jaune ou au rouge.
+  Choisissez le nouvel état, ou laissez vide pour tout changement. Variables :
+  le cluster, le nouvel état et le précédent, les shards non assignés, les
+  index rouges.
+- **Disque de nœud presque plein** : le disque d'un nœud atteint 80, 85, 90
+  ou 95 %. 85 % est le seuil bas d'Elasticsearch (plus de nouveau shard sur
+  le nœud), 90 % le seuil haut (les shards partent ailleurs), 95 % le seuil
+  d'inondation (ses index passent en lecture seule). Annoncé de nouveau une
+  fois le disque redescendu de 2 points.
+- **Cluster injoignable** : le cluster ne répond plus, sur deux lectures de
+  suite (une lecture en échec est retentée après 20 secondes). Variable : la
+  raison.
+
+Action :
+
+- **Santé du cluster** : lit le cluster pour les actions suivantes : état,
+  nœuds, shards non assignés, documents, disque le plus plein, et un résumé
+  prêt à envoyer dans un message (« Cluster logs : jaune, 3 nœuds, 2 shards
+  non assignés, disque de es-1 87 %… »).
 
 ## Tableau de bord
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Le widget **Cluster de recherche** affiche l'état dans sa couleur, les
+nœuds, les shards non assignés, les documents et la taille des index, puis
+les index rouges et une ligne par nœud (disque et tas, le disque le plus
+plein d'abord, ★ pour le maître élu). Son bouton **Actualiser** relit le
+cluster. La liste comme le bouton se masquent dans les réglages du widget.
+
+## Limites
+
+- Un seul cluster par installation de l'intégration.
+- Testée avec Elasticsearch 8 et OpenSearch 2 ; Elasticsearch 7 et OpenSearch 1 répondent aux mêmes API (non testé). Elastic Cloud
+  fonctionne aussi (clé d'API, `https://…:443`), mais l'intégration est pensée
+  pour un cluster sur votre réseau.
+- La santé des index n'est pas suivie index par index : seuls les noms des
+  index rouges sont donnés.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- « Certificat non reconnu » : voir l'étape 3 de la configuration.
+- « Accès refusé » : la clé ou l'utilisateur n'a pas le privilège de cluster
+  `monitor`. Avec la seule santé du cluster, l'appareil du cluster fonctionne
+  quand même, sans nœuds, documents ni taille.
+- Le détail de chaque lecture est dans les logs de l'intégration avec
+  `LOG_LEVEL=debug`.
+
+Elasticsearch est une marque d'Elasticsearch B.V., OpenSearch de LF
+Projects, LLC. Cette intégration n'est affiliée ni à l'une ni à l'autre.

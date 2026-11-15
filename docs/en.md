@@ -1,61 +1,117 @@
-# Demo Devices Template
+# Elasticsearch / OpenSearch
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+The health of your Elasticsearch or OpenSearch cluster in Gladys: status,
+nodes, shards, disks, scene triggers and a dashboard widget. Read only: the
+integration never writes to the cluster.
+
+Tested against real Elasticsearch 8.19 and OpenSearch 2.19 clusters (in
+Docker, with and without security). Feedback is welcome on
+[GitHub](https://github.com/guim31/gladys-elasticsearch/issues).
 
 ## What you get
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+In the **Discover** tab, one device for the cluster and one per node.
+
+The cluster device:
+
+- **Status (0 green, 1 yellow, 2 red)**: the health status of the cluster.
+  Yellow: a replica is not allocated (normal on a single node with replicas).
+  Red: a primary shard is missing, data is not searchable.
+- **Nodes**, **Data nodes**, **Active shards**, **Unassigned shards**.
+- **Indices**, **Documents**, **Size of the indices** (GB).
+- **Version**: the product and its version, e.g. `OpenSearch 2.19.3`.
+
+Each node device:
+
+- **Disk used**, **JVM heap used**, **CPU** (%), **Load (1 min)**.
+- **Shards**: the shards it holds.
+- **In the cluster**: 1 while the node is part of the cluster, 0 once it left
+  (its badge then says unreachable).
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+1. With security enabled (the default of Elasticsearch 8), create an API key
+   for Gladys limited to monitoring, for example in Kibana → Dev Tools:
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+   ```
+   POST /_security/api_key
+   {"name": "gladys", "role_descriptors": {"gladys": {
+     "cluster": ["monitor"],
+     "indices": [{"names": ["*"], "privileges": ["monitor"]}]}}}
+   ```
+
+   Copy the `encoded` value into **API key (Elasticsearch)**. With
+   OpenSearch, or without API keys, create a user with the `cluster_monitor`
+   permission (and `indices_monitor` to name the red indices) and fill in
+   **User** and **Password**. Never the `elastic` or `admin` account.
+
+2. **Address**: any node, e.g. `192.168.1.20` (port 9200, HTTPS tried first,
+   then HTTP) or `https://es.lan:9200`.
+3. HTTPS with a self-signed certificate (the default of Elasticsearch 8 and
+   OpenSearch): click **Test the connection**. It shows the SHA-256
+   fingerprint of the certificate. Check it is the one of your cluster: on
+   the server, `openssl s_client -connect localhost:9200 </dev/null | openssl x509 -noout -fingerprint -sha256`
+   prints it. Then
+   copy it into **Certificate fingerprint** and save. Only this certificate is
+   then accepted. **Accept any certificate** skips every check: avoid it.
+4. Add the cluster and the nodes you want from the **Discover** tab.
+
+The **Refresh interval** (1 minute by default) sets how often the cluster is
+read: five light monitoring requests each time (six when red). The
+**Language of the names** sets the names of the features, frozen when a
+device is added, and the texts sent to scenes.
 
 ## Actions
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+- **Test the connection**: reads the cluster now and says what it found
+  (product, status, nodes), with the fingerprint of an HTTPS certificate.
 
 ## Scenes
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+Triggers, which work without adding any device:
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+- **Cluster status changes**: the status becomes green, yellow or red. Choose
+  the new status, or leave it empty for every change. Variables: the cluster,
+  the new and previous status, the unassigned shards, the red indices.
+- **Node disk almost full**: the disk of a node reaches 80, 85, 90 or 95 %.
+  85 % is the low watermark of Elasticsearch (no new shard on the node), 90 %
+  the high one (shards move away), 95 % the flood stage (its indices turn read
+  only). Announced again once the disk went 2 points below.
+- **Cluster unreachable**: the cluster no longer answers, on two reads in a
+  row (a failed read is retried after 20 seconds). Variable: the reason.
+
+Action:
+
+- **Health of the cluster**: reads the cluster for the next actions: status,
+  nodes, unassigned shards, documents, fullest disk, and a ready-made summary
+  to send in a message ("Cluster logs: yellow, 3 nodes, 2 unassigned shards,
+  disk of es-1 87 %…").
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **Search cluster** widget shows the status in its color, the nodes, the
+unassigned shards, the documents and the size of the indices, then the red
+indices and one row per node (disk and heap, the fullest disk first, ★ for
+the elected master). Its **Refresh** button reads the cluster again. Both
+the list and the button can be hidden in the widget settings.
+
+## Limits
+
+- One cluster per installation of the integration.
+- Tested with Elasticsearch 8 and OpenSearch 2; Elasticsearch 7 and OpenSearch 1 answer the same APIs (untested). Elastic Cloud works too
+  (API key, `https://…:443`), but the integration is designed for a cluster
+  on your network.
+- The health of the indices themselves is not followed index by index: only
+  the names of the red ones are given.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- "Certificate not trusted": see step 3 of the configuration.
+- "Access refused": the key or the user lacks the `monitor` cluster
+  privilege. With the cluster health only, the cluster device still works,
+  without nodes, documents and size.
+- The full detail of each read is in the integration logs with
+  `LOG_LEVEL=debug`.
+
+Elasticsearch is a trademark of Elasticsearch B.V., OpenSearch of LF
+Projects, LLC. This integration is not affiliated with either.

@@ -1,177 +1,763 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Elasticsearch / OpenSearch",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Health of your Elasticsearch or OpenSearch cluster: status, shards, nodes, disks, scenes, widget.",
+    "fr": "Santé de votre cluster Elasticsearch ou OpenSearch : état, shards, nœuds, disques, scènes, widget.",
+    "de": "Zustand deines Elasticsearch- oder OpenSearch-Clusters: Status, Shards, Knoten, Platten, Szenen.",
+    "es": "Salud de su clúster Elasticsearch u OpenSearch: estado, shards, nodos, discos, escenas, widget."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-elasticsearch:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-elasticsearch/main/cover.png",
+  "categories": ["servers"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your cluster",
+        "fr": "Votre cluster",
+        "de": "Dein Cluster",
+        "es": "Su clúster"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Read only. With security enabled, create an API key (or a user) with the \"monitor\" cluster privilege for Gladys. Then add the cluster and its nodes from the Discover tab.",
+        "fr": "Lecture seule. Si la sécurité est activée, créez pour Gladys une clé d'API (ou un utilisateur) avec le privilège de cluster « monitor ». Ajoutez ensuite le cluster et ses nœuds depuis l'onglet Découverte.",
+        "de": "Nur lesend. Ist die Sicherheit aktiv, lege für Gladys einen API-Schlüssel (oder Benutzer) mit dem Cluster-Recht „monitor“ an. Füge dann Cluster und Knoten im Tab „Entdecken“ hinzu.",
+        "es": "Solo lectura. Con la seguridad activada, cree para Gladys una clave de API (o un usuario) con el privilegio de clúster «monitor». Después añada el clúster y sus nodos desde la pestaña Descubrir."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-elasticsearch/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide d'installation",
+            "de": "Installationsanleitung",
+            "es": "Guía de instalación"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Address",
+        "fr": "Adresse",
+        "de": "Adresse",
+        "es": "Dirección"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "description": {
+        "en": "Any node of the cluster. Without http:// or https://, HTTPS is tried, then HTTP; port 9200 unless typed.",
+        "fr": "N'importe quel nœud du cluster. Sans http:// ni https://, HTTPS est essayé, puis HTTP ; port 9200 sauf saisi.",
+        "de": "Ein beliebiger Knoten des Clusters. Ohne http:// oder https:// wird HTTPS, dann HTTP versucht; Port 9200, sofern nicht angegeben.",
+        "es": "Cualquier nodo del clúster. Sin http:// ni https:// se prueba HTTPS y luego HTTP; puerto 9200 salvo que lo indique."
+      },
+      "placeholder": {
+        "en": "e.g. 192.168.1.20",
+        "fr": "ex. 192.168.1.20",
+        "de": "z. B. 192.168.1.20",
+        "es": "p. ej. 192.168.1.20"
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "api_key",
+      "type": "secret",
+      "label": {
+        "en": "API key (Elasticsearch)",
+        "fr": "Clé d'API (Elasticsearch)",
+        "de": "API-Schlüssel (Elasticsearch)",
+        "es": "Clave de API (Elasticsearch)"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "description": {
+        "en": "Recommended with Elasticsearch: the \"encoded\" value of the key. Empty: user and password below, or none.",
+        "fr": "Conseillé avec Elasticsearch : la valeur « encoded » de la clé. Vide : utilisateur et mot de passe ci-dessous, ou aucun.",
+        "de": "Empfohlen bei Elasticsearch: der Wert „encoded“ des Schlüssels. Leer: Benutzer und Passwort unten oder keine.",
+        "es": "Recomendado con Elasticsearch: el valor «encoded» de la clave. Vacío: usuario y contraseña de abajo, o ninguno."
+      },
+      "required": false
     },
     {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "key": "username",
+      "type": "string",
+      "label": {
+        "en": "User (without API key)",
+        "fr": "Utilisateur (sans clé)",
+        "de": "Benutzer (ohne Schlüssel)",
+        "es": "Usuario (sin clave)"
+      },
+      "placeholder": {
+        "en": "e.g. gladys",
+        "fr": "ex. gladys",
+        "de": "z. B. gladys",
+        "es": "p. ej. gladys"
+      },
+      "required": false
+    },
+    {
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Password (without API key)",
+        "fr": "Mot de passe (sans clé)",
+        "de": "Passwort (ohne Schlüssel)",
+        "es": "Contraseña (sin clave)"
+      },
+      "description": {
+        "en": "Never the elastic or admin account: a user limited to monitoring.",
+        "fr": "Jamais le compte elastic ou admin : un utilisateur limité à la supervision.",
+        "de": "Nie das Konto elastic oder admin: ein Benutzer nur für die Überwachung.",
+        "es": "Nunca la cuenta elastic o admin: un usuario limitado a la supervisión."
+      },
+      "required": false
+    },
+    {
+      "key": "certificate",
+      "type": "section",
+      "label": {
+        "en": "HTTPS certificate",
+        "fr": "Certificat HTTPS",
+        "de": "HTTPS-Zertifikat",
+        "es": "Certificado HTTPS"
+      },
+      "description": {
+        "en": "A self-signed certificate (the default of Elasticsearch 8 and OpenSearch) is refused until you confirm it: \"Test the connection\" shows its fingerprint.",
+        "fr": "Un certificat auto-signé (celui d'Elasticsearch 8 et d'OpenSearch par défaut) est refusé tant que vous ne l'avez pas confirmé : « Tester la connexion » affiche son empreinte.",
+        "de": "Ein selbstsigniertes Zertifikat (Standard bei Elasticsearch 8 und OpenSearch) wird abgelehnt, bis du es bestätigst: „Verbindung testen“ zeigt seinen Fingerabdruck.",
+        "es": "Un certificado autofirmado (el predeterminado de Elasticsearch 8 y OpenSearch) se rechaza hasta que usted lo confirme: «Probar la conexión» muestra su huella."
+      }
+    },
+    {
+      "key": "tls_fingerprint",
+      "type": "string",
+      "label": {
+        "en": "Certificate fingerprint",
+        "fr": "Empreinte du certificat",
+        "de": "Zertifikat-Fingerabdruck",
+        "es": "Huella del certificado"
+      },
+      "description": {
+        "en": "SHA-256, copied from \"Test the connection\": only this certificate is then accepted.",
+        "fr": "SHA-256, copiée depuis « Tester la connexion » : seul ce certificat est alors accepté.",
+        "de": "SHA-256, aus „Verbindung testen“ kopiert: Dann wird nur dieses Zertifikat akzeptiert.",
+        "es": "SHA-256, copiada de «Probar la conexión»: entonces solo se acepta este certificado."
+      },
+      "placeholder": {
+        "en": "e.g. 21:01:88:C7:…",
+        "fr": "ex. 21:01:88:C7:…",
+        "de": "z. B. 21:01:88:C7:…",
+        "es": "p. ej. 21:01:88:C7:…"
+      },
+      "required": false
+    },
+    {
+      "key": "allow_insecure_tls",
+      "type": "boolean",
+      "label": {
+        "en": "Accept any certificate (not recommended)",
+        "fr": "Accepter tout certificat (déconseillé)",
+        "de": "Jedes Zertifikat akzeptieren (nicht empfohlen)",
+        "es": "Aceptar cualquier certificado (no recomendado)"
+      },
+      "description": {
+        "en": "No check at all: anyone on the network could pose as the cluster. Prefer the fingerprint.",
+        "fr": "Aucune vérification : n'importe qui sur le réseau pourrait se faire passer pour le cluster. Préférez l'empreinte.",
+        "de": "Keine Prüfung: Jeder im Netz könnte sich als Cluster ausgeben. Nimm lieber den Fingerabdruck.",
+        "es": "Sin ninguna comprobación: cualquiera en la red podría hacerse pasar por el clúster. Prefiera la huella."
+      },
       "required": false,
-      "default": "celsius",
+      "default": false
+    },
+    {
+      "key": "options",
+      "type": "section",
+      "label": {
+        "en": "Options",
+        "fr": "Options",
+        "de": "Optionen",
+        "es": "Opciones"
+      }
+    },
+    {
+      "key": "poll_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often the cluster is read: five light monitoring requests each time.",
+        "fr": "Fréquence de lecture du cluster : cinq requêtes légères de supervision à chaque fois.",
+        "de": "Wie oft der Cluster gelesen wird: jedes Mal fünf leichte Überwachungsanfragen.",
+        "es": "Con qué frecuencia se lee el clúster: cinco peticiones ligeras de supervisión cada vez."
+      },
+      "required": false,
+      "default": "60",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Names of the device features (frozen when the device is added) and texts of the scenes.",
+        "fr": "Noms des fonctionnalités des appareils (figés à l'ajout de l'appareil) et textes des scènes.",
+        "de": "Namen der Gerätefunktionen (beim Hinzufügen festgelegt) und Texte der Szenen.",
+        "es": "Nombres de las funciones de los dispositivos (fijados al añadirlos) y textos de las escenas."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Reads the cluster now, says what it found and shows the fingerprint of an HTTPS certificate.",
+        "fr": "Lit le cluster maintenant, dit ce qu'il a trouvé et affiche l'empreinte d'un certificat HTTPS.",
+        "de": "Liest den Cluster jetzt, sagt, was gefunden wurde, und zeigt den Fingerabdruck eines HTTPS-Zertifikats.",
+        "es": "Lee ahora el clúster, indica lo que ha encontrado y muestra la huella de un certificado HTTPS."
+      },
+      "timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "cluster_status_changed",
+      "label": {
+        "en": "Cluster status changes",
+        "fr": "L'état du cluster change",
+        "de": "Cluster-Status ändert sich",
+        "es": "Cambia el estado del clúster"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "The health status of the cluster becomes green, yellow or red. Works without adding any device.",
+        "fr": "L'état de santé du cluster passe au vert, au jaune ou au rouge. Fonctionne sans ajouter d'appareil.",
+        "de": "Der Zustand des Clusters wird grün, gelb oder rot. Funktioniert ohne hinzugefügtes Gerät.",
+        "es": "El estado de salud del clúster pasa a verde, amarillo o rojo. Funciona sin añadir ningún dispositivo."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "status",
           "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "label": {
+            "en": "New status",
+            "fr": "Nouvel état",
+            "de": "Neuer Status",
+            "es": "Nuevo estado"
+          },
+          "description": {
+            "en": "Empty: every change.",
+            "fr": "Vide : tout changement.",
+            "de": "Leer: jede Änderung.",
+            "es": "Vacío: cualquier cambio."
+          },
+          "required": false,
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "green",
+              "label": {
+                "en": "Green",
+                "fr": "Vert",
+                "de": "Grün",
+                "es": "Verde"
+              }
+            },
+            {
+              "value": "yellow",
+              "label": {
+                "en": "Yellow",
+                "fr": "Jaune",
+                "de": "Gelb",
+                "es": "Amarillo"
+              }
+            },
+            {
+              "value": "red",
+              "label": {
+                "en": "Red",
+                "fr": "Rouge",
+                "de": "Rot",
+                "es": "Rojo"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "cluster_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Cluster",
+            "fr": "Cluster",
+            "de": "Cluster",
+            "es": "Clúster"
+          }
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "label": {
+            "en": "New status (green, yellow, red)",
+            "fr": "Nouvel état (green, yellow, red)",
+            "de": "Neuer Status (green, yellow, red)",
+            "es": "Nuevo estado (green, yellow, red)"
+          }
+        },
+        {
+          "key": "previous_status",
+          "type": "string",
+          "label": {
+            "en": "Previous status",
+            "fr": "État précédent",
+            "de": "Vorheriger Status",
+            "es": "Estado anterior"
+          }
+        },
+        {
+          "key": "unassigned_shards",
+          "type": "number",
+          "label": {
+            "en": "Unassigned shards",
+            "fr": "Shards non assignés",
+            "de": "Nicht zugewiesene Shards",
+            "es": "Shards sin asignar"
+          }
+        },
+        {
+          "key": "red_indices",
+          "type": "string",
+          "label": {
+            "en": "Red indices",
+            "fr": "Index rouges",
+            "de": "Rote Indizes",
+            "es": "Índices rojos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "disk_almost_full",
+      "label": {
+        "en": "Node disk almost full",
+        "fr": "Disque de nœud presque plein",
+        "de": "Knoten-Platte fast voll",
+        "es": "Disco de nodo casi lleno"
+      },
+      "description": {
+        "en": "The disk of a node reaches the chosen use (85 %: no new shard there, 95 %: indices read only). Announced again once 2 points below.",
+        "fr": "Le disque d'un nœud atteint le taux choisi (85 % : plus de nouveau shard, 95 % : index en lecture seule). Annoncé de nouveau une fois redescendu de 2 points.",
+        "de": "Die Platte eines Knotens erreicht die gewählte Belegung (85 %: keine neuen Shards, 95 %: Indizes schreibgeschützt). Erneut gemeldet, wenn 2 Punkte darunter.",
+        "es": "El disco de un nodo alcanza el uso elegido (85 %: ningún shard nuevo, 95 %: índices de solo lectura). Se avisa de nuevo cuando baja 2 puntos."
+      },
+      "fields": [
+        {
+          "key": "node",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Node",
+            "fr": "Nœud",
+            "de": "Knoten",
+            "es": "Nodo"
+          },
+          "description": {
+            "en": "A node device. Empty: every node, added to Gladys or not.",
+            "fr": "Un appareil nœud. Vide : tous les nœuds, ajoutés à Gladys ou non.",
+            "de": "Ein Knoten-Gerät. Leer: alle Knoten, ob zu Gladys hinzugefügt oder nicht.",
+            "es": "Un dispositivo de nodo. Vacío: todos los nodos, añadidos a Gladys o no."
+          },
+          "required": false
+        },
+        {
+          "key": "threshold",
+          "type": "select",
+          "label": {
+            "en": "Disk used",
+            "fr": "Disque utilisé",
+            "de": "Belegte Platte",
+            "es": "Disco usado"
+          },
+          "required": true,
+          "default": "85",
+          "options": [
+            {
+              "value": "80",
+              "label": {
+                "en": "80 %",
+                "fr": "80 %",
+                "de": "80 %",
+                "es": "80 %"
+              }
+            },
+            {
+              "value": "85",
+              "label": {
+                "en": "85 %",
+                "fr": "85 %",
+                "de": "85 %",
+                "es": "85 %"
+              }
+            },
+            {
+              "value": "90",
+              "label": {
+                "en": "90 %",
+                "fr": "90 %",
+                "de": "90 %",
+                "es": "90 %"
+              }
+            },
+            {
+              "value": "95",
+              "label": {
+                "en": "95 %",
+                "fr": "95 %",
+                "de": "95 %",
+                "es": "95 %"
+              }
+            }
+          ]
+        }
+      ],
+      "variables": [
+        {
+          "key": "node_name",
+          "type": "string",
+          "label": {
+            "en": "Node",
+            "fr": "Nœud",
+            "de": "Knoten",
+            "es": "Nodo"
+          }
+        },
+        {
+          "key": "cluster_name",
+          "type": "string",
+          "label": {
+            "en": "Cluster",
+            "fr": "Cluster",
+            "de": "Cluster",
+            "es": "Clúster"
+          }
+        },
+        {
+          "key": "used_percent",
+          "type": "number",
+          "label": {
+            "en": "Disk used (%)",
+            "fr": "Disque utilisé (%)",
+            "de": "Belegte Platte (%)",
+            "es": "Disco usado (%)"
+          }
+        },
+        {
+          "key": "free_gb",
+          "type": "number",
+          "label": {
+            "en": "Free space (GB)",
+            "fr": "Espace libre (Go)",
+            "de": "Freier Speicher (GB)",
+            "es": "Espacio libre (GB)"
+          }
+        },
+        {
+          "key": "threshold",
+          "type": "number",
+          "label": {
+            "en": "Threshold (%)",
+            "fr": "Seuil (%)",
+            "de": "Schwelle (%)",
+            "es": "Umbral (%)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "cluster_unreachable",
+      "label": {
+        "en": "Cluster unreachable",
+        "fr": "Cluster injoignable",
+        "de": "Cluster nicht erreichbar",
+        "es": "Clúster inaccesible"
+      },
+      "description": {
+        "en": "The cluster no longer answers, on two reads in a row (a stopped node, wrong credentials…).",
+        "fr": "Le cluster ne répond plus, sur deux lectures de suite (nœud arrêté, identifiants refusés…).",
+        "de": "Der Cluster antwortet nicht mehr, bei zwei Abfragen hintereinander (gestoppter Knoten, abgelehnte Zugangsdaten …).",
+        "es": "El clúster ya no responde, en dos lecturas seguidas (nodo detenido, credenciales rechazadas…)."
+      },
+      "variables": [
+        {
+          "key": "cluster_name",
+          "type": "string",
+          "label": {
+            "en": "Cluster",
+            "fr": "Cluster",
+            "de": "Cluster",
+            "es": "Clúster"
+          }
+        },
+        {
+          "key": "error",
+          "type": "string",
+          "label": {
+            "en": "Reason",
+            "fr": "Raison",
+            "de": "Grund",
+            "es": "Motivo"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_cluster_health",
+      "label": {
+        "en": "Health of the cluster",
+        "fr": "Santé du cluster",
+        "de": "Zustand des Clusters",
+        "es": "Salud del clúster"
       },
-      "timeout_seconds": 15,
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ],
+      "description": {
+        "en": "Reads the cluster for the next actions: status, nodes, shards, documents, fullest disk, and a ready-made summary.",
+        "fr": "Lit le cluster pour les actions suivantes : état, nœuds, shards, documents, disque le plus plein, et un résumé prêt à envoyer.",
+        "de": "Liest den Cluster für die nächsten Aktionen: Status, Knoten, Shards, Dokumente, vollste Platte und eine fertige Zusammenfassung.",
+        "es": "Lee el clúster para las acciones siguientes: estado, nodos, shards, documentos, disco más lleno y un resumen listo para enviar."
+      },
+      "timeout_seconds": 30,
       "outputs": [
         {
-          "key": "signalled",
+          "key": "cluster_name",
+          "type": "string",
+          "label": {
+            "en": "Cluster",
+            "fr": "Cluster",
+            "de": "Cluster",
+            "es": "Clúster"
+          }
+        },
+        {
+          "key": "online",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Answers",
+            "fr": "Répond",
+            "de": "Antwortet",
+            "es": "Responde"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          }
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "label": {
+            "en": "Status (green, yellow, red)",
+            "fr": "État (green, yellow, red)",
+            "de": "Status (green, yellow, red)",
+            "es": "Estado (green, yellow, red)"
+          }
+        },
+        {
+          "key": "status_code",
+          "type": "number",
+          "label": {
+            "en": "Status (0 green, 1 yellow, 2 red)",
+            "fr": "État (0 vert, 1 jaune, 2 rouge)",
+            "de": "Status (0 grün, 1 gelb, 2 rot)",
+            "es": "Estado (0 verde, 1 amarillo, 2 rojo)"
+          }
+        },
+        {
+          "key": "nodes",
+          "type": "number",
+          "label": {
+            "en": "Nodes",
+            "fr": "Nœuds",
+            "de": "Knoten",
+            "es": "Nodos"
+          }
+        },
+        {
+          "key": "unassigned_shards",
+          "type": "number",
+          "label": {
+            "en": "Unassigned shards",
+            "fr": "Shards non assignés",
+            "de": "Nicht zugewiesene Shards",
+            "es": "Shards sin asignar"
+          }
+        },
+        {
+          "key": "documents",
+          "type": "number",
+          "label": {
+            "en": "Documents",
+            "fr": "Documents",
+            "de": "Dokumente",
+            "es": "Documentos"
+          }
+        },
+        {
+          "key": "max_disk_used",
+          "type": "number",
+          "label": {
+            "en": "Fullest disk (%)",
+            "fr": "Disque le plus plein (%)",
+            "de": "Vollste Platte (%)",
+            "es": "Disco más lleno (%)"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "cluster",
+      "label": {
+        "en": "Search cluster",
+        "fr": "Cluster de recherche",
+        "de": "Suchcluster",
+        "es": "Clúster de búsqueda"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "icon": "database",
+      "description": {
+        "en": "Status, nodes, unassigned shards, documents and size of the cluster, disk and heap of each node.",
+        "fr": "État, nœuds, shards non assignés, documents et taille du cluster, disque et tas de chaque nœud.",
+        "de": "Status, Knoten, nicht zugewiesene Shards, Dokumente, Größe; Platte und Heap jedes Knotens.",
+        "es": "Estado, nodos, shards sin asignar, documentos y tamaño del clúster, disco y montón de cada nodo."
+      },
+      "settings": [
+        {
+          "key": "show_nodes",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "label": {
+            "en": "Show the nodes and red indices",
+            "fr": "Afficher les nœuds et index rouges",
+            "de": "Knoten und rote Indizes anzeigen",
+            "es": "Mostrar los nodos e índices rojos"
+          }
+        },
+        {
+          "key": "show_refresh",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "label": {
+            "en": "Show the Refresh button",
+            "fr": "Afficher le bouton Actualiser",
+            "de": "Schaltfläche „Aktualisieren“ anzeigen",
+            "es": "Mostrar el botón Actualizar"
+          }
+        }
+      ],
+      "action_timeout_seconds": 30
     }
   ]
 }

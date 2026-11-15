@@ -1,41 +1,42 @@
 // -----------------------------------------------------------------------------
-// Scene actions (SDK v0.14+, Gladys 5.1+).
+// Scene action handlers (manifest `scene_actions`, Gladys 5.1+).
 //
-// A scene action is an OPERATION a scene author places in a scene, with
-// parameters and a result: "identify this device", "take a snapshot", "clean
-// these rooms". Each one is declared in the manifest `scene_actions` field
-// (key, label, `fields` in the config_schema grammar, scalar `outputs`) and
-// handled here, keyed by that same `key`; index.js registers every entry with
-// `gladys.onSceneAction(key, ...)`.
-//
-// Scene TRIGGERS are the other direction ("this happened"): they are fired by
-// the device that observes the event, see src/devices/motionSensor.js.
-//
-// The rules that matter:
-//   - `fields` arrive RESOLVED: scene variables substituted, defaults applied,
-//     validated by the core; a `"source": "devices"` field is the chosen
-//     device external_id;
-//   - resolve an object of the declared `outputs` (scalars only), readable by
-//     the following actions of the scene, or `undefined` for none. Keys not
-//     declared in the manifest are dropped by the core;
-//   - throwing fails THIS action only: the scene logs it and continues. A
-//     scene action is never a condition: return an output and let the scene
-//     author gate on it;
-//   - never fire a scene event as a consequence of a received action: a scene
-//     bound to that event would loop through the integration.
+// "Is the cluster red?" is already a scene condition on the status feature.
+// What a condition cannot do is put the state of the cluster in a message
+// ("Cluster logs: yellow, 3 nodes, 5 unassigned shards, disk of es-1 87 %"),
+// with the figures as outputs too, without adding any device. It reads the
+// cluster again when the last read is older than 15 seconds. An unreachable
+// cluster is an answer, not a failure: `online` false, and the summary says
+// so — the scene can still send it.
 // -----------------------------------------------------------------------------
 
-import { createLogger } from '@gladysassistant/integration-sdk';
-import { signalDevice } from './devices/index.js';
-
-const logger = createLogger({ name: 'scenes' });
+import { summarize } from './texts.js';
 
 export const SCENE_ACTIONS = {
-  // The ack is awaited under the action's `timeout_seconds` (15 s in the
-  // manifest), counted from the moment the scene reaches the action.
-  async identify_device(gladys, { fields, config }) {
-    logger.info(`Scene action identify_device <- ${fields.device}`);
-    const signalled = await signalDevice(gladys, fields.device, config);
-    return { signalled };
+  async get_cluster_health(hub) {
+    await hub.refreshIfStale();
+    const view = hub.view();
+    const language = hub.config?.language ?? 'en';
+    const outputs = {
+      cluster_name: view.name,
+      online: view.snapshot !== null,
+      summary: summarize(view, language),
+    };
+    const { snapshot } = view;
+    if (!snapshot) {
+      return outputs;
+    }
+    const disks = (snapshot.nodes ?? []).map((node) => node.disk).filter((v) => v !== null);
+    const all = {
+      ...outputs,
+      status: snapshot.status,
+      status_code: snapshot.statusCode,
+      nodes: snapshot.nodeCount,
+      unassigned_shards: snapshot.unassignedShards,
+      documents: snapshot.docCount,
+      max_disk_used: disks.length ? Math.max(...disks) : null,
+    };
+    // Scalars only: a value the cluster did not give is left out.
+    return Object.fromEntries(Object.entries(all).filter(([, value]) => value !== null));
   },
 };
