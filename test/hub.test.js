@@ -208,6 +208,16 @@ test('a stopped cluster: one failure is retried, two make it unreachable', async
   await world.app.stop();
 });
 
+test('a cluster never reached is not announced unreachable (certificate to confirm)', async () => {
+  const cluster = new FakeCluster({ scheme: 'https', fingerprint: 'F1' });
+  const world = await createWorld({ cluster });
+  await world.gladys.fake.action('test_connection');
+  await world.hub.poll();
+  assert.deepEqual(world.gladys.fake.sceneEvents, []);
+  assert.equal(world.gladys.fake.connectionStatus.connected, false);
+  await world.app.stop();
+});
+
 test('a node that leaves the cluster: in_cluster 0 and the unreachable badge', async () => {
   const cluster = new FakeCluster();
   threeNodes(cluster.answers);

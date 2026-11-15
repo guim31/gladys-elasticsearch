@@ -231,6 +231,12 @@ export class ElasticsearchHub {
     if (!this.down && this.failures >= this.timings.downAfterFailures) {
       this.down = true;
       this.gladys.requestWidgetRefresh(WIDGET_KEY);
+      if (!this.snapshot) {
+        // Never reached with this configuration (a certificate to confirm,
+        // a typo): the connection status says why, a scene has nothing to
+        // react to.
+        return;
+      }
       await this.fireEvent(TRIGGERS.UNREACHABLE, {
         cluster_name: this.clusterName(),
         error: pick(ERROR_TEXT[error.kind], this.config.language),
